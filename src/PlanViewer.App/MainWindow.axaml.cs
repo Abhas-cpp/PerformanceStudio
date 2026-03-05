@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -370,7 +371,7 @@ public partial class MainWindow : Window
         var clipboard = this.Clipboard;
         if (clipboard == null) return;
 
-        var xml = await clipboard.GetTextAsync();
+        var xml = await clipboard.TryGetTextAsync();
         if (string.IsNullOrWhiteSpace(xml))
         {
             ShowError("The clipboard does not contain any text.");
