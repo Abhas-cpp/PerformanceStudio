@@ -540,21 +540,11 @@ public partial class MainWindow : Window
 
     private void ShowAdviceWindow(string title, string content)
     {
-        var textBox = new TextBox
-        {
-            Text = content,
-            IsReadOnly = true,
-            AcceptsReturn = true,
-            FontFamily = new FontFamily("Consolas, Menlo, monospace"),
-            FontSize = 12,
-            Background = Brushes.Transparent,
-            BorderThickness = new Avalonia.Thickness(0),
-            TextWrapping = TextWrapping.Wrap
-        };
+        var styledContent = BuildStyledAdviceContent(content);
 
         var scrollViewer = new ScrollViewer
         {
-            Content = textBox,
+            Content = styledContent,
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };
@@ -1103,6 +1093,229 @@ public partial class MainWindow : Window
             statusText.Text = $"Error: {ex.Message}";
             progressBar.IsVisible = false;
         }
+    }
+
+    private static readonly SolidColorBrush AdviceHeaderBrush = new(Color.Parse("#4FA3FF"));
+    private static readonly SolidColorBrush AdviceCriticalBrush = new(Color.Parse("#E57373"));
+    private static readonly SolidColorBrush AdviceWarningBrush = new(Color.Parse("#FFB347"));
+    private static readonly SolidColorBrush AdviceInfoBrush = new(Color.Parse("#6BB5FF"));
+    private static readonly SolidColorBrush AdviceLabelBrush = new(Color.Parse("#9B9EC0"));
+    private static readonly SolidColorBrush AdviceValueBrush = new(Color.Parse("#E4E6EB"));
+    private static readonly SolidColorBrush AdviceCodeBrush = new(Color.Parse("#7BCF7B"));
+    private static readonly SolidColorBrush AdviceMutedBrush = new(Color.Parse("#8B8FA0"));
+    private static readonly FontFamily AdviceFont = new("Consolas, Menlo, monospace");
+
+    private StackPanel BuildStyledAdviceContent(string content)
+    {
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(4, 0) };
+        var lines = content.Split('\n');
+        var inCodeBlock = false;
+        var codeBlockIndent = 0;
+
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine.TrimEnd('\r');
+
+            // Empty lines — small spacer
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                panel.Children.Add(new Border { Height = 6 });
+                inCodeBlock = false;
+                continue;
+            }
+
+            // Section headers: === ... ===
+            if (line.StartsWith("===") && line.EndsWith("==="))
+            {
+                inCodeBlock = false;
+                panel.Children.Add(new TextBlock
+                {
+                    Text = line,
+                    FontFamily = AdviceFont,
+                    FontSize = 12,
+                    FontWeight = FontWeight.SemiBold,
+                    Foreground = AdviceHeaderBrush,
+                    Margin = new Avalonia.Thickness(0, 4, 0, 2),
+                    TextWrapping = TextWrapping.Wrap
+                });
+                continue;
+            }
+
+            // Warning lines: [Critical], [Warning], [Info]
+            if (line.Contains("[Critical]"))
+            {
+                panel.Children.Add(CreateWarningLine(line, AdviceCriticalBrush));
+                continue;
+            }
+            if (line.Contains("[Warning]"))
+            {
+                panel.Children.Add(CreateWarningLine(line, AdviceWarningBrush));
+                continue;
+            }
+            if (line.Contains("[Info]"))
+            {
+                panel.Children.Add(CreateWarningLine(line, AdviceInfoBrush));
+                continue;
+            }
+
+            // SNIFFING marker
+            if (line.Contains("[SNIFFING]"))
+            {
+                var tb = new TextBlock
+                {
+                    FontFamily = AdviceFont,
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Avalonia.Thickness(0, 1)
+                };
+                var sniffIdx = line.IndexOf("[SNIFFING]");
+                tb.Inlines!.Add(new Avalonia.Controls.Documents.Run(line[..sniffIdx])
+                    { Foreground = AdviceValueBrush });
+                tb.Inlines.Add(new Avalonia.Controls.Documents.Run("[SNIFFING]")
+                    { Foreground = AdviceCriticalBrush, FontWeight = FontWeight.SemiBold });
+                panel.Children.Add(tb);
+                continue;
+            }
+
+            // CREATE INDEX lines (multi-line: CREATE..., ON..., INCLUDE..., WHERE...)
+            var trimmed = line.TrimStart();
+            if (trimmed.StartsWith("CREATE", StringComparison.OrdinalIgnoreCase))
+            {
+                inCodeBlock = true;
+                codeBlockIndent = line.Length - trimmed.Length;
+            }
+            else if (inCodeBlock)
+            {
+                // Continuation lines of a CREATE statement
+                if (trimmed.StartsWith("ON ", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("INCLUDE ", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("WHERE ", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("WITH ", StringComparison.OrdinalIgnoreCase))
+                { /* still in code block */ }
+                else
+                    inCodeBlock = false;
+            }
+
+            if (inCodeBlock)
+            {
+                // Normalize indentation: continuation lines match the CREATE line
+                var currentIndent = line.Length - trimmed.Length;
+                var displayLine = currentIndent < codeBlockIndent
+                    ? new string(' ', codeBlockIndent) + trimmed
+                    : line;
+
+                panel.Children.Add(new TextBlock
+                {
+                    Text = displayLine,
+                    FontFamily = AdviceFont,
+                    FontSize = 12,
+                    Foreground = AdviceCodeBrush,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Avalonia.Thickness(0, 1)
+                });
+                continue;
+            }
+
+            // Section labels: "Warnings:", "Parameters:", "Wait stats:", etc.
+            if (trimmed.EndsWith(":") && !trimmed.Contains(' '))
+            {
+                panel.Children.Add(new TextBlock
+                {
+                    Text = line,
+                    FontFamily = AdviceFont,
+                    FontSize = 12,
+                    FontWeight = FontWeight.SemiBold,
+                    Foreground = AdviceLabelBrush,
+                    Margin = new Avalonia.Thickness(0, 4, 0, 1),
+                    TextWrapping = TextWrapping.Wrap
+                });
+                continue;
+            }
+
+            // Bullet lines: "   * ..."
+            if (trimmed.StartsWith("* "))
+            {
+                panel.Children.Add(new TextBlock
+                {
+                    Text = line,
+                    FontFamily = AdviceFont,
+                    FontSize = 12,
+                    Foreground = AdviceMutedBrush,
+                    Margin = new Avalonia.Thickness(0, 1),
+                    TextWrapping = TextWrapping.Wrap
+                });
+                continue;
+            }
+
+            // Key-value lines: "Label: value"
+            var colonIdx = line.IndexOf(':');
+            if (colonIdx > 0 && colonIdx < line.Length - 1)
+            {
+                // Check it's a label:value pattern (label is short text, not SQL)
+                var labelPart = line[..colonIdx].TrimStart();
+                if (labelPart.Length < 40 && !labelPart.Contains('(') && !labelPart.Contains('='))
+                {
+                    var tb = new TextBlock
+                    {
+                        FontFamily = AdviceFont,
+                        FontSize = 12,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Avalonia.Thickness(0, 1)
+                    };
+                    tb.Inlines!.Add(new Avalonia.Controls.Documents.Run(line[..(colonIdx + 1)])
+                        { Foreground = AdviceLabelBrush });
+                    tb.Inlines.Add(new Avalonia.Controls.Documents.Run(line[(colonIdx + 1)..])
+                        { Foreground = AdviceValueBrush });
+                    panel.Children.Add(tb);
+                    continue;
+                }
+            }
+
+            // Default: regular text
+            panel.Children.Add(new TextBlock
+            {
+                Text = line,
+                FontFamily = AdviceFont,
+                FontSize = 12,
+                Foreground = AdviceValueBrush,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Avalonia.Thickness(0, 1)
+            });
+        }
+
+        return panel;
+    }
+
+    private static TextBlock CreateWarningLine(string line, SolidColorBrush severityBrush)
+    {
+        var tb = new TextBlock
+        {
+            FontFamily = AdviceFont,
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Avalonia.Thickness(0, 1)
+        };
+
+        // Find the severity tag and color it
+        foreach (var tag in new[] { "[Critical]", "[Warning]", "[Info]" })
+        {
+            var idx = line.IndexOf(tag);
+            if (idx >= 0)
+            {
+                if (idx > 0)
+                    tb.Inlines!.Add(new Avalonia.Controls.Documents.Run(line[..idx])
+                        { Foreground = AdviceMutedBrush });
+                tb.Inlines!.Add(new Avalonia.Controls.Documents.Run(tag)
+                    { Foreground = severityBrush, FontWeight = FontWeight.SemiBold });
+                tb.Inlines.Add(new Avalonia.Controls.Documents.Run(line[(idx + tag.Length)..])
+                    { Foreground = AdviceValueBrush });
+                return tb;
+            }
+        }
+
+        tb.Text = line;
+        tb.Foreground = severityBrush;
+        return tb;
     }
 
     private void ShowError(string message)
