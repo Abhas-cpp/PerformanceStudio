@@ -134,6 +134,22 @@ public class QueryStoreRow : INotifyPropertyChanged
     public string AvgPhysReadsDisplay => Plan.AvgPhysicalIoReads.ToString("N0");
     public string TotalMemDisplay => (Plan.TotalMemoryGrantPages * 8.0 / 1024.0).ToString("N1");
     public string AvgMemDisplay => (Plan.AvgMemoryGrantPages * 8.0 / 1024.0).ToString("N1");
+
+    // Numeric sort properties (DataGrid SortMemberPath targets)
+    public long ExecsSort => Plan.CountExecutions;
+    public long TotalCpuSort => Plan.TotalCpuTimeUs;
+    public double AvgCpuSort => Plan.AvgCpuTimeUs;
+    public long TotalDurSort => Plan.TotalDurationUs;
+    public double AvgDurSort => Plan.AvgDurationUs;
+    public long TotalReadsSort => Plan.TotalLogicalIoReads;
+    public double AvgReadsSort => Plan.AvgLogicalIoReads;
+    public long TotalWritesSort => Plan.TotalLogicalIoWrites;
+    public double AvgWritesSort => Plan.AvgLogicalIoWrites;
+    public long TotalPhysReadsSort => Plan.TotalPhysicalIoReads;
+    public double AvgPhysReadsSort => Plan.AvgPhysicalIoReads;
+    public long TotalMemSort => Plan.TotalMemoryGrantPages;
+    public double AvgMemSort => Plan.AvgMemoryGrantPages;
+
     public string LastExecutedLocal => Plan.LastExecutedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
     public string QueryPreview => Plan.QueryText.Length > 80
         ? Plan.QueryText[..80].Replace("\n", " ").Replace("\r", "") + "..."
