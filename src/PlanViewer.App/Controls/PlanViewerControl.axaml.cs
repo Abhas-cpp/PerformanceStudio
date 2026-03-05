@@ -307,8 +307,17 @@ public partial class PlanViewerControl : UserControl
         // Map border to node (replaces WPF Tag)
         _nodeBorderMap[border] = node;
 
-        // Tooltip
-        ToolTip.SetTip(border, BuildNodeTooltipContent(node));
+        // Tooltip — root node gets all collected warnings so the tooltip shows them
+        if (totalWarningCount > 0)
+        {
+            var allWarnings = new List<PlanWarning>();
+            CollectWarnings(node, allWarnings);
+            ToolTip.SetTip(border, BuildNodeTooltipContent(node, allWarnings));
+        }
+        else
+        {
+            ToolTip.SetTip(border, BuildNodeTooltipContent(node));
+        }
 
         // Click to select + show properties
         border.PointerPressed += Node_Click;
@@ -1649,7 +1658,7 @@ public partial class PlanViewerControl : UserControl
 
     #region Tooltips
 
-    private object BuildNodeTooltipContent(PlanNode node)
+    private object BuildNodeTooltipContent(PlanNode node, List<PlanWarning>? allWarnings = null)
     {
         var tipBorder = new Border
         {
@@ -1790,11 +1799,12 @@ public partial class PlanViewerControl : UserControl
             AddTooltipRow(stack, "Columns", node.OutputColumns, isCode: true);
         }
 
-        // Warnings
-        if (node.HasWarnings)
+        // Warnings — use allWarnings (all nodes) for root, node.Warnings for others
+        var warnings = allWarnings ?? (node.HasWarnings ? node.Warnings : null);
+        if (warnings != null && warnings.Count > 0)
         {
             stack.Children.Add(new Separator { Margin = new Thickness(0, 6, 0, 6) });
-            foreach (var w in node.Warnings)
+            foreach (var w in warnings)
             {
                 var warnColor = w.Severity == PlanWarningSeverity.Critical ? "#E57373"
                     : w.Severity == PlanWarningSeverity.Warning ? "#FFB347" : "#6BB5FF";
