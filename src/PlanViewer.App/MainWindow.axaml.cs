@@ -1035,19 +1035,43 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
+        var cancelBtn = new Button
+        {
+            Content = "\u25A0 Cancel",
+            Height = 32,
+            Width = 120,
+            Padding = new Avalonia.Thickness(16, 0),
+            FontSize = 13,
+            Margin = new Avalonia.Thickness(0, 16, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Theme = (Avalonia.Styling.ControlTheme)this.FindResource("AppButton")!
+        };
+
         loadingPanel.Children.Add(progressBar);
         loadingPanel.Children.Add(statusText);
+        loadingPanel.Children.Add(cancelBtn);
+
+        var cts = new System.Threading.CancellationTokenSource();
+        cancelBtn.Click += (_, _) => cts.Cancel();
 
         var loadingContainer = new Grid
         {
             Background = new SolidColorBrush(Color.Parse("#1A1D23")),
+            Focusable = true,
             Children = { loadingPanel }
+        };
+        loadingContainer.KeyDown += (_, ke) =>
+        {
+            if (ke.Key == Avalonia.Input.Key.Escape) { cts.Cancel(); ke.Handled = true; }
         };
 
         var tab = CreateTab("Actual Plan", loadingContainer);
         MainTabControl.Items.Add(tab);
         MainTabControl.SelectedItem = tab;
         UpdateEmptyOverlay();
+        loadingContainer.Focus();
 
         try
         {
@@ -1064,13 +1088,12 @@ public partial class MainWindow : Window
 
             statusText.Text = "Capturing actual plan...";
 
-            var cts = new System.Threading.CancellationTokenSource();
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             var actualPlanXml = await ActualPlanExecutor.ExecuteForActualPlanAsync(
                 connectionString, database, queryText,
                 viewer.RawXml, isolationLevel: null,
-                isAzureSqlDb: isAzure, timeoutSeconds: 60, cts.Token);
+                isAzureSqlDb: isAzure, timeoutSeconds: 0, cts.Token);
 
             sw.Stop();
 
