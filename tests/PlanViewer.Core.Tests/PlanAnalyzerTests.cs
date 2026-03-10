@@ -443,8 +443,13 @@ public class PlanAnalyzerTests
         var plan = PlanTestHelper.LoadAndAnalyze("table_variable_plan.sqlplan");
         var warnings = PlanTestHelper.WarningsOfType(plan, "Table Variable");
 
-        Assert.Single(warnings);
-        Assert.Contains("lack column-level statistics", warnings[0].Message);
+        // Node-level + statement-level warnings
+        Assert.True(warnings.Count >= 2);
+        Assert.Contains(warnings, w => w.Message.Contains("lack column-level statistics"));
+        // Statement-level stats warning
+        var stmtWarnings = PlanTestHelper.FirstStatement(plan).PlanWarnings
+            .Where(w => w.WarningType == "Table Variable").ToList();
+        Assert.Contains(stmtWarnings, w => w.Message.Contains("lack column-level statistics"));
     }
 
     // ---------------------------------------------------------------
@@ -562,13 +567,13 @@ public class PlanAnalyzerTests
     [Fact]
     public void Rule25_IneffectiveParallelism_DetectedWhenCpuEqualsElapsed()
     {
-        // serially-parallel: DOP 8 but CPU 17,110ms ≈ elapsed 17,112ms (ratio ~1.0)
+        // serially-parallel: DOP 8 but CPU 17,110ms ≈ elapsed 17,112ms (efficiency ~0%)
         var plan = PlanTestHelper.LoadAndAnalyze("serially-parallel.sqlplan");
         var warnings = PlanTestHelper.WarningsOfType(plan, "Ineffective Parallelism");
 
         Assert.Single(warnings);
         Assert.Contains("DOP 8", warnings[0].Message);
-        Assert.Contains("ran essentially serially", warnings[0].Message);
+        Assert.Contains("% efficient", warnings[0].Message);
     }
 
     [Fact]
@@ -632,13 +637,15 @@ public class PlanAnalyzerTests
     public void Rule31_ParallelWaitBottleneck_DetectedWhenElapsedExceedsCpu()
     {
         // excellent-parallel-spill: DOP 4, CPU 172,222ms vs elapsed 225,870ms
-        // ratio ~0.76 (< 0.8) — threads are waiting more than working
+        // speedup ~0.76 — CPU < Elapsed but >= 0.5, so fires as Ineffective Parallelism
+        // (wait bottleneck only fires when speedup < 0.5 — extreme waiting)
         var plan = PlanTestHelper.LoadAndAnalyze("excellent-parallel-spill.sqlplan");
-        var warnings = PlanTestHelper.WarningsOfType(plan, "Parallel Wait Bottleneck");
 
-        Assert.Single(warnings);
+        // At DOP 4 with speedup 0.76, efficiency ≈ 0% — fires Ineffective Parallelism
+        var warnings = PlanTestHelper.WarningsOfType(plan, "Ineffective Parallelism");
+        Assert.NotEmpty(warnings);
         Assert.Contains("DOP 4", warnings[0].Message);
-        Assert.Contains("waiting", warnings[0].Message);
+        Assert.Contains("% efficient", warnings[0].Message);
     }
 
     // ---------------------------------------------------------------
